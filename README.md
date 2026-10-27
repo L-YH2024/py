@@ -32,3 +32,12 @@ python app.py
 ## 功能演示截图
 
 完整演示截图已放在 `screenshots/` 目录，覆盖注册、登录、创建问卷、匿名填写、必填校验、重复提交限制、统计图表和 CSV 导出。建议按文件名前的序号查看。
+
+## 课程设计材料
+
+课程设计报告、开发日志、Debug 日志和 AI 协作记录统一放在 `docs/` 目录：
+
+- `docs/课程设计报告.pdf`
+- `docs/DEVELOPMENT_LOG.md`
+- `docs/DEBUG_LOG.md`
+- `docs/AI协作记录.md`
