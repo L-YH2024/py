@@ -5,5 +5,4 @@ venv/
 .env
 instance/
 .pytest_cache/
-screenshots/*.png
 
