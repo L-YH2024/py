@@ -201,6 +201,40 @@ def create_app():
         flash('问卷已删除。', 'success')
         return redirect(url_for('dashboard'))
 
+    @app.route('/survey/<public_id>/edit', methods=['GET', 'POST'])
+    def edit_survey(public_id):
+        login_redirect = login_required()
+        if login_redirect: return login_redirect
+        survey = owner_survey(public_id)
+        if not survey.available:
+            flash('问卷已关闭或已超过截止时间，不能编辑。', 'warning')
+            return redirect(url_for('dashboard'))
+        if request.method == 'POST':
+            title = request.form.get('title', '').strip()
+            if not title:
+                flash('标题不能为空。', 'danger')
+                return render_template('survey_form.html', survey=survey, editing=True)
+            survey.title = title
+            survey.description = request.form.get('description', '').strip()
+            deadline = request.form.get('deadline', '').strip()
+            survey.deadline = datetime.fromisoformat(deadline) if deadline else None
+            for old_question in list(survey.questions): db.session.delete(old_question)
+            db.session.flush()
+            texts = request.form.getlist('question_text')
+            kinds = request.form.getlist('question_kind')
+            requireds = request.form.getlist('required_question')
+            options = request.form.getlist('question_options')
+            for i, text in enumerate(texts):
+                if not text.strip(): continue
+                q = Question(survey_id=survey.id, text=text.strip(), kind=kinds[i], required=str(i) in requireds, position=i)
+                db.session.add(q); db.session.flush()
+                for j, option_text in enumerate(options[i].split('|') if i < len(options) else []):
+                    if option_text.strip(): db.session.add(Option(question_id=q.id, text=option_text.strip(), position=j))
+            db.session.commit()
+            flash('问卷修改成功。', 'success')
+            return redirect(url_for('dashboard'))
+        return render_template('survey_form.html', survey=survey, editing=True)
+
     @app.route('/survey/<public_id>', methods=['GET', 'POST'])
     def fill_survey(public_id):
         survey = Survey.query.filter_by(public_id=public_id).first_or_404()
@@ -261,7 +295,7 @@ def create_app():
                 for answer in Answer.query.filter_by(question_id=q.id).all(): writer.writerow([q.text, answer.text_value or '', 1])
             else:
                 for option in q.options: writer.writerow([q.text, option.text, Answer.query.filter_by(question_id=q.id, option_id=option.id).count()])
-        return Response('\ufeff' + output.getvalue(), mimetype='text/csv; charset=utf-8', headers={'Content-Disposition': f'attachment; filename=survey_{survey.id}.csv'})
+        return FlaskResponse('\ufeff' + output.getvalue(), mimetype='text/csv; charset=utf-8', headers={'Content-Disposition': f'attachment; filename=survey_{survey.id}.csv'})
 
     with app.app_context():
         db.create_all()
