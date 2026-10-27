@@ -1,5 +1,5 @@
 {% extends 'base.html' %}{% block content %}
-<div class="card p-4"><h2>{{ '编辑问卷' if editing else '创建问卷' }}</h2>
+<div class="card p-4"><h2>{{ '编辑问卷' if editing else '创建问卷' }}</h2>{% if editing and survey.responses %}<div class="alert alert-info">该问卷已有答卷，保存时只更新标题、说明和截止时间，题目与选项不会改变。</div>{% endif %}
 <form method="post"><label class="form-label">标题</label><input class="form-control" name="title" value="{{ survey.title if survey else '' }}" required>
 <label class="form-label mt-3">说明</label><textarea class="form-control" name="description">{{ survey.description if survey else '' }}</textarea>
 <label class="form-label mt-3">截止时间（可选）</label><input class="form-control" type="datetime-local" name="deadline" value="{{ survey.deadline.strftime('%Y-%m-%dT%H:%M') if survey and survey.deadline else '' }}">

@@ -218,6 +218,10 @@ def create_app():
             survey.description = request.form.get('description', '').strip()
             deadline = request.form.get('deadline', '').strip()
             survey.deadline = datetime.fromisoformat(deadline) if deadline else None
+            if survey.responses:
+                db.session.commit()
+                flash('该问卷已有答卷，本次仅更新标题、说明和截止时间，题目结构保持不变。', 'info')
+                return redirect(url_for('dashboard'))
             for old_question in list(survey.questions): db.session.delete(old_question)
             db.session.flush()
             texts = request.form.getlist('question_text')
