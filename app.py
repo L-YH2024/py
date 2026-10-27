@@ -67,7 +67,7 @@ class Response(db.Model):
     visitor_token = db.Column(db.String(64), nullable=False)
     submitted_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     answers = db.relationship('Answer', backref='response', cascade='all, delete-orphan')
-    __table_args__ = (db.UniqueConstraint('survey_id', 'ip_hash', 'visitor_token', name='uq_survey_visitor'),)
+    __table_args__ = (db.UniqueConstraint('survey_id', 'visitor_token', name='uq_survey_visitor'),)
 
 
 class Answer(db.Model):
@@ -148,7 +148,8 @@ def create_app():
         login_redirect = login_required()
         if login_redirect: return login_redirect
         surveys = Survey.query.filter_by(user_id=session['user_id']).order_by(Survey.created_at.desc()).all()
-        return render_template('dashboard.html', surveys=surveys)
+        public_surveys = Survey.query.filter_by(closed=False).order_by(Survey.created_at.desc()).all()
+        return render_template('dashboard.html', surveys=surveys, public_surveys=public_surveys)
 
     @app.route('/survey/new', methods=['GET', 'POST'])
     def create_survey():
@@ -203,11 +204,12 @@ def create_app():
     @app.route('/survey/<public_id>', methods=['GET', 'POST'])
     def fill_survey(public_id):
         survey = Survey.query.filter_by(public_id=public_id).first_or_404()
-        token = request.cookies.get('visitor_token') or uuid.uuid4().hex
+        cookie_token = request.cookies.get('visitor_token') or uuid.uuid4().hex
+        token = f'user:{session["user_id"]}' if session.get('user_id') else f'guest:{cookie_token}'
         ip_hash = hashlib.sha256(request.remote_addr.encode()).hexdigest()
         if request.method == 'POST':
             if not survey.available: return render_template('message.html', title='问卷已结束', message='该问卷已关闭或超过截止时间。'), 410
-            if Response.query.filter_by(survey_id=survey.id, ip_hash=ip_hash, visitor_token=token).first():
+            if Response.query.filter_by(survey_id=survey.id, visitor_token=token).first():
                 return render_template('message.html', title='请勿重复提交', message='同一填写者只能提交一次。'), 409
             response = Response(survey_id=survey.id, ip_hash=ip_hash, visitor_token=token)
             db.session.add(response)
@@ -227,7 +229,7 @@ def create_app():
             result = render_template('message.html', title='感谢参与', message='你的回答已成功提交。')
             response = Response.query.get(response.id)
             resp = FlaskResponse(result)
-            resp.set_cookie('visitor_token', token, max_age=31536000, httponly=True, samesite='Lax')
+            resp.set_cookie('visitor_token', cookie_token, max_age=31536000, httponly=True, samesite='Lax')
             return resp
         return render_template('fill.html', survey=survey)
 
@@ -267,6 +269,7 @@ def create_app():
 
 
 app = create_app()
+
 
 if __name__ == '__main__':
     app.run(debug=True)
