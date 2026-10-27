@@ -280,7 +280,13 @@ def create_app():
         for q in survey.questions:
             rows = []
             if q.kind != 'text':
-                rows = [{'name': o.text, 'value': Answer.query.filter_by(question_id=q.id, option_id=o.id).count()} for o in q.options]
+                counts = dict(
+                    db.session.query(Answer.option_id, db.func.count(Answer.id))
+                    .filter(Answer.question_id == q.id)
+                    .group_by(Answer.option_id)
+                    .all()
+                )
+                rows = [{'name': o.text, 'value': counts.get(o.id, 0)} for o in q.options]
             else:
                 rows = [{'text': a.text_value} for a in Answer.query.filter_by(question_id=q.id).all() if a.text_value]
             result_data.append({'id': q.id, 'text': q.text, 'kind': q.kind, 'rows': rows})
