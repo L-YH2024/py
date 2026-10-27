@@ -5,7 +5,7 @@
 Python 3.10+、MySQL 8.0+。
 
 ```sql
-CREATE DATABASE vote_system DEFAULT CHARACTER SET utf8mb4;
+SOURCE database/init.sql;
 ```
 
 ```powershell
@@ -17,7 +17,7 @@ Copy-Item .env.example .env
 python app.py
 ```
 
-首次启动会自动创建表。也可以执行 `flask --app app init-db` 初始化数据库。
+也可以执行 `flask --app app init-db` 初始化数据库；首次启动应用也会自动创建缺失的表。
 
 ## 测试账号与测试数据
 
