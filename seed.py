@@ -2,8 +2,12 @@ from app import app, db, User, Survey, Question, Option, Response, Answer
 from werkzeug.security import generate_password_hash
 
 with app.app_context():
-    user = User.query.filter_by(username='demo').first() or User(username='demo', password_hash=generate_password_hash('demo123456'))
-    db.session.add(user); db.session.flush()
+    user = User.query.filter_by(username='demo').first()
+    if not user:
+        user = User(username='demo')
+        db.session.add(user)
+    user.password_hash = generate_password_hash('demo123456')
+    db.session.flush()
     survey = Survey.query.filter_by(title='课程设计示例问卷').first()
     if not survey:
         survey = Survey(title='课程设计示例问卷', description='用于现场演示的测试问卷', user_id=user.id); db.session.add(survey); db.session.flush()
